@@ -339,11 +339,12 @@ function setupWindow(window, args) {
 
     // Only opener window can close window; any code that's not running from
     // within a window's context can also close window.
-    if (browser._windowInScope === opener || browser._windowInScope === null) {
-      browser.tabs._closed(window);
+    if (browser._windowInScope === opener || browser._windowInScope === window || browser._windowInScope === null) {
+      browser.tabs._closed(window._history.current.window);
       // Only parent window gets the close event
       browser.emit('closed', window);
       history.destroy(); // do this last to prevent infinite loop
+      browser._eventLoop.active = browser.tabs.current || null;
     } else
       browser.log('Scripts may not close windows that were not opened by script');
   };
@@ -463,6 +464,26 @@ function setupWindow(window, args) {
   browser.emit('opened', window);
 }
 
+// Help iframes talking with each other
+Window.prototype.postMessage = function(data) {
+  // Create the event now, but dispatch asynchronously
+  const event = this.document.createEvent('MessageEvent');
+  event.initEvent('message', false, false);
+  event.data = data;
+  // Window A (source) calls B.postMessage, to determine A we need the
+  // caller's window.
+
+  // DDOPSON-2012-11-09 - _windowInScope.getGlobal() is used here so that for
+  // website code executing inside the sandbox context, event.source ==
+  // window. Even though the _windowInScope object is mapped to the sandboxed
+  // version of the object returned by getGlobal, they are not the same object
+  // ie, _windowInScope.foo == _windowInScope.getGlobal().foo, but
+  // _windowInScope != _windowInScope.getGlobal()
+  event.source = (this.browser._windowInScope || this);
+  const origin = event.source.location;
+  event.origin = URL.format({ protocol: origin.protocol, host: origin.host });
+  this._evaluate(()=>{this.dispatchEvent(event)});
+};
 
 // Change location
 DOM.Document.prototype.__defineSetter__('location', function(url) {
