@@ -199,7 +199,7 @@ describe('Window opener property and close method', function(){
         assert(browser.tabs.length == 2); //should open a new tab
         browser.assert.url('/window/opened');
         let openedWindow = browser.window;
-        browser.evaluate("postMessageToOpener('close')");
+        browser.evaluate('postMessageToOpener(\'close\')');
         assert(openedWindow.closed);
         assert(browser.tabs.length == 1); //should close the tab
       });
@@ -217,7 +217,7 @@ describe('Window opener property and close method', function(){
         await browser.clickLink('navigate');
         let navigatedWindow = browser.window;
         browser.assert.url('/window/navigated');
-        browser.evaluate("postMessageToOpener('close')");
+        browser.evaluate('postMessageToOpener(\'close\')');
         assert(openedWindow.closed);
         assert(navigatedWindow.closed);
         assert(browser.tabs.length == 1);

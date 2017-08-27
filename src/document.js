@@ -439,7 +439,10 @@ function setupWindow(window, args) {
     const event = this.document.createEvent('MessageEvent');
     event.initMessageEvent('message', false, false, data, eventOrigin, null, source, []);
 
-    this.dispatchEvent(event);
+	this._evaluate(() => {
+		this.dispatchEvent(event);
+	});
+    
   };
 
   // Inject HTMLDocument.hasFocus function
@@ -463,27 +466,6 @@ function setupWindow(window, args) {
   // Window is now open, next load the document.
   browser.emit('opened', window);
 }
-
-// Help iframes talking with each other
-Window.prototype.postMessage = function(data) {
-  // Create the event now, but dispatch asynchronously
-  const event = this.document.createEvent('MessageEvent');
-  event.initEvent('message', false, false);
-  event.data = data;
-  // Window A (source) calls B.postMessage, to determine A we need the
-  // caller's window.
-
-  // DDOPSON-2012-11-09 - _windowInScope.getGlobal() is used here so that for
-  // website code executing inside the sandbox context, event.source ==
-  // window. Even though the _windowInScope object is mapped to the sandboxed
-  // version of the object returned by getGlobal, they are not the same object
-  // ie, _windowInScope.foo == _windowInScope.getGlobal().foo, but
-  // _windowInScope != _windowInScope.getGlobal()
-  event.source = (this.browser._windowInScope || this);
-  const origin = event.source.location;
-  event.origin = URL.format({ protocol: origin.protocol, host: origin.host });
-  this._evaluate(()=>{this.dispatchEvent(event)});
-};
 
 // Change location
 DOM.Document.prototype.__defineSetter__('location', function(url) {
