@@ -2,6 +2,7 @@
 
 const assert          = require('assert');
 const browserFeatures = require('jsdom/lib/jsdom/browser/documentfeatures');
+const idlUtils        = require("jsdom/lib/jsdom/living/generated/utils.js");
 const Fetch           = require('./fetch');
 const DOM             = require('./dom');
 const EventSource     = require('eventsource');
@@ -10,7 +11,7 @@ const QS              = require('querystring');
 const resourceLoader  = require('jsdom/lib/jsdom/browser/resource-loader');
 const Resources       = require('./resources');
 const URL             = require('url');
-const Utils           = require('jsdom/lib/jsdom/utils');
+const Utils           = require('./utils');
 const VM              = require('vm');
 const WebSocket       = require('ws');
 const Window          = require('jsdom/lib/jsdom/browser/Window');
@@ -119,19 +120,25 @@ function setupWindow(window, args) {
   const emptySet = [];
   emptySet.item = ()=> undefined;
   emptySet.namedItem = ()=> undefined;
-  window.navigator = {
-    appName:        'Zombie',
-    appVersion:     browser.constructor.VERSION,
-    cookieEnabled:  true,
-    javaEnabled:    ()=> false,
-    language:       browser.language,
-    mimeTypes:      emptySet,
-    noUI:           true,
-    platform:       process.platform,
-    plugins:        emptySet,
-    userAgent:      browser.userAgent,
-    vendor:         'Zombie Industries'
-  };
+
+  Object.defineProperty(window, 'navigator', {
+    enumerable: true,
+    configurable: true,
+    writable: false,
+    value: {
+      appName:        'Zombie',
+      appVersion:     browser.constructor.VERSION,
+      cookieEnabled:  true,
+      javaEnabled:    ()=> false,
+      language:       browser.language,
+      mimeTypes:      emptySet,
+      noUI:           true,
+      platform:       process.platform,
+      plugins:        emptySet,
+      userAgent:      browser.userAgent,
+      vendor:         'Zombie Industries'
+    }
+  });
 
   // Add cookies, storage, alerts/confirm, XHR, WebSockets, JSON, Screen, etc
   Object.defineProperty(window, 'cookies', {
@@ -385,7 +392,11 @@ function setupWindow(window, args) {
   });
 
   // DOM History object
-  window.history  = windowHistory;
+  Object.defineProperty(window, 'history', {
+    enumerable: true,
+    get() { return windowHistory }
+  });
+
   /// Actual history, see location getter/setter
   window._history = history;
 
@@ -501,8 +512,11 @@ function createDocument(args) {
     url:          args.url,
     referrer:     args.referrer
   });
+
   const { document } = window;
-  browserFeatures.applyDocumentFeatures(document, features);
+
+  var documentImpl = idlUtils.implForWrapper(window._document);
+  browserFeatures.applyDocumentFeatures(documentImpl, features);
   setupWindow(window, args);
 
   // Give event handler chance to register listeners.

@@ -22,8 +22,7 @@ const Storages          = require('./storage');
 const Tough             = require('tough-cookie');
 const { Cookie }        = Tough;
 const URL               = require('url');
-const Utils             = require('jsdom/lib/jsdom/utils');
-const fileListSymbols   = require('jsdom/lib/jsdom/living/filelist-symbols');
+const Utils             = require('./utils');
 
 
 // Version number.  We get this from package.json.
@@ -538,8 +537,9 @@ class Browser extends EventEmitter {
     if (arguments.length < 3 && typeof options === 'function')
       [options, callback] = [{}, options];
 
-    const site = /^(https?:|file:)/i.test(this.site) ? this.site : `http://${this.site || 'localhost'}/`;
-    url = Utils.resolveHref(site, URL.format(url));
+    const baseURL = /^(https?:|file:)/i.test(this.site) ? this.site : `http://${this.site || 'localhost'}/`;
+
+    url = Utils.resolveHref(baseURL, url);
 
     if (this.window)
       this.tabs.close(this.window);

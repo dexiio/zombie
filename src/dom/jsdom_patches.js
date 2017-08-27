@@ -6,18 +6,11 @@ const Fetch                = require('../fetch');
 const resourceLoader       = require('jsdom/lib/jsdom/browser/resource-loader');
 const Utils                = require('jsdom/lib/jsdom/utils');
 const URL                  = require('url');
-const createHTMLCollection = require('jsdom/lib/jsdom/living/html-collection').create;
-
-
-DOM.HTMLDocument.prototype.__defineGetter__('scripts', function() {
-  return createHTMLCollection(this, ()=> this.querySelectorAll('script'));
-});
 
 
 // Default behavior for clicking on links: navigate to new URL if specified.
-DOM.HTMLAnchorElement.prototype._eventDefaults =
-  Object.assign({}, DOM.HTMLElement.prototype._eventDefaults);
-DOM.HTMLAnchorElement.prototype._eventDefaults.click = function(event) {
+
+DOM.HTMLAnchorElement.prototype.click = function(event) {
   const anchor = event.target;
   if (!anchor.href)
     return;
@@ -85,55 +78,6 @@ Object.defineProperty(DOM.HTMLElement.prototype, 'offsetWidth', {
   }
 });
 
-
-// Implement insertAdjacentHTML
-DOM.HTMLElement.prototype.insertAdjacentHTML = function(position, html) {
-  const { parentNode }  = this;
-  const container       = this.ownerDocument.createElementNS('http://www.w3.org/1999/xhtml', '_');
-  container.innerHTML   = html;
-
-  switch (position.toLowerCase()) {
-    case 'beforebegin': {
-      while (container.firstChild)
-        parentNode.insertBefore(container.firstChild, this);
-      break;
-    }
-    case 'afterbegin': {
-      let firstChild = this.firstChild;
-      while (container.lastChild)
-        firstChild = this.insertBefore(container.lastChild, firstChild);
-      break;
-    }
-    case 'beforeend': {
-      while (container.firstChild)
-        this.appendChild(container.firstChild);
-      break;
-    }
-    case 'afterend': {
-      let nextSibling = this.nextSibling;
-      while (container.lastChild)
-        nextSibling = parentNode.insertBefore(container.lastChild, nextSibling);
-      break;
-    }
-  }
-};
-
-
-// Implement documentElement.contains
-// e.g., if(document.body.contains(el)) { ... }
-// See https://developer.mozilla.org/en-US/docs/DOM/Node.contains
-DOM.Node.prototype.contains = function(otherNode) {
-  // DDOPSON-2012-08-16 -- This implementation is stolen from Sizzle's
-  // implementation of 'contains' (around line 1402).
-  // We actually can't call Sizzle.contains directly:
-  // * Because we define Node.contains, Sizzle will configure it's own
-  //   "contains" method to call us. (it thinks we are a native browser
-  //   implementation of "contains")
-  // * Thus, if we called Sizzle.contains, it would form an infinite loop.
-  //   Instead we use Sizzle's fallback implementation of "contains" based on
-  //   "compareDocumentPosition".
-  return !!(this.compareDocumentPosition(otherNode) & 16);
-};
 
 
 // Support for opacity style property.
@@ -211,7 +155,11 @@ resourceLoader.load = function(element, href, callback) {
   }
 };
 
+/*
+Note: JSDOM now using whatwg-url and seems to handle this scenario
+
 // Fix residual Node bug. See https://github.com/joyent/node/pull/14146
+
 const jsdomResolveHref = Utils.resolveHref;
 Utils.resolveHref = function (baseUrl, href) {
   const pattern = /file:?/;
@@ -224,3 +172,4 @@ Utils.resolveHref = function (baseUrl, href) {
   else
     return URL.format(resolved);
 };
+*/

@@ -9,7 +9,8 @@ const Path            = require('path');
 const Request         = require('request');
 const resourceLoader  = require('jsdom/lib/jsdom/browser/resource-loader');
 const URL             = require('url');
-const Utils           = require('jsdom/lib/jsdom/utils');
+const Utils           = require('./utils');
+const documentBaseURLSerialized = require("jsdom/lib/jsdom/living/helpers/document-base-url").documentBaseURLSerialized;
 
 
 // Pipeline is sequence of request/response handlers that are used to prepare a
@@ -37,6 +38,7 @@ class Pipeline extends Array {
         return response;
       })
       .catch(function(error) {
+        console.log('ERR', error.stack);
         browser._debug('Resource error', error.stack);
         throw new TypeError(error.message);
       });
@@ -141,12 +143,16 @@ class Pipeline extends Array {
   // It turns relative URLs into absolute URLs based on the current document URL
   // or base element, or if no document open, based on browser.site property.
   static normalizeURL(browser, request) {
-    if (browser.document)
-    // Resolve URL relative to document URL/base, or for new browser, using
-    // Browser.site
-      request.url = resourceLoader.resolveResourceUrl(browser.document, request.url);
-    else
-      request.url = Utils.resolveHref(browser.site || 'http://localhost', request.url);
+
+    var baseURL = browser.site || 'http://localhost';
+    if (browser.document) {
+      console.log('browser.document', browser.document._URL);
+      baseURL = documentBaseURLSerialized(browser.document);
+    }
+
+    console.log('baseURL', baseURL);
+
+    request.url = Utils.resolveHref(baseURL, request.url);
   }
 
 
